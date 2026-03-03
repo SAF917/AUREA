@@ -1,0 +1,1500 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Aurea</title>
+  <style>
+    body {
+      background: #111;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+      overflow: hidden;
+    }
+    .chat-container {
+      background: rgba(20,20,20,0.98);
+      border-radius: 20px;
+      box-shadow: 0 0 32px #a020f0, 0 4px 24px rgba(160,32,240,0.18);
+      border: 3px solid #a020f0;
+      width: 350px;
+      max-width: 90vw;
+      padding: 20px 16px 80px 16px;
+      margin-bottom: 40px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      height: 60vh;
+      min-height: 350px;
+      z-index: 10;
+    }
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      margin-bottom: 12px;
+      padding-right: 4px;
+    }
+    .message {
+      margin: 8px 0;
+      padding: 10px 16px;
+      border-radius: 18px;
+      max-width: 80%;
+      word-break: break-word;
+      font-size: 1em;
+      border: 2px solid #a020f0;
+      box-shadow: 0 0 12px #a020f0;
+      background: #222;
+      color: #fff;
+      letter-spacing: 0.02em;
+    }
+    .message.user { align-self: flex-end; }
+    .message.bot { align-self: flex-start; color: #a020f0; background: #222; }
+    .input-area { display: flex; gap: 8px; margin-top: 8px; }
+    .steps-title {
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      color: #a020f0;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+    .steps-list { display: flex; flex-direction: column; gap: 6px; }
+    .step-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #1a1a1a;
+      border: 1px solid #a020f0;
+      border-radius: 12px;
+      padding: 8px 10px;
+      color: #eafcff;
+      box-shadow: 0 0 10px rgba(160,32,240,0.25);
+    }
+    .step-index {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #a020f0;
+      color: #000;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 12px rgba(160,32,240,0.45);
+      flex-shrink: 0;
+    }
+    .step-text { flex: 1; }
+    #userInput {
+      flex: 1;
+      padding: 10px;
+      border-radius: 16px;
+      border: 2px solid #a020f0;
+      font-size: 1em;
+      outline: none;
+      background: #222;
+      color: #fff;
+      box-shadow: 0 0 8px #a020f0;
+      letter-spacing: 0.02em;
+      transition: border 0.2s;
+    }
+    #userInput:focus { border: 2px solid #fff; }
+    button {
+      background: #a020f0;
+      color: #fff;
+      border: 2px solid #a020f0;
+      border-radius: 16px;
+      padding: 10px 20px;
+      font-size: 1em;
+      cursor: pointer;
+      box-shadow: 0 0 12px #a020f0;
+      font-weight: bold;
+      transition: background 0.2s, color 0.2s;
+    }
+    button:hover { background: #fff; color: #a020f0; border: 2px solid #a020f0; }
+
+    /* botones dentro del área de entrada: más compactos para no desbordar */
+    .input-area button {
+      padding: 6px 10px;
+      border-radius: 10px;
+      font-size: 0.95em;
+      min-width: 44px;
+      height: 36px;
+      box-shadow: 0 0 8px #a020f0;
+    }
+    /* ajustar altura del input para alinear con botones pequeños */
+    #userInput {
+      height: 36px;
+      line-height: 1.2;
+    }
+    /* botón específico de enviar a Arduino (si necesita ajuste extra) */
+    #sendSerialBtn {
+      padding: 6px 10px;
+      min-width: 48px;
+    }
+
+    /* controles fuera del cuadro: fijados, centrados y más cerca del borde inferior */
+    .controls-bottom {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 40px; /* bajado más cerca del borde inferior */
+      width: 360px;
+      max-width: 90vw;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      z-index: 40;
+      pointer-events: auto;
+      background: transparent;
+    }
+    .controls-bottom button {
+      flex: 1;
+      padding: 12px 18px;
+      border-radius: 14px;
+      font-size: 1em;
+      min-width: 0;
+      box-shadow: 0 0 14px rgba(0, 234, 255, 0.35);
+    }
+    #saveToArduinoBtn, #readFromArduinoBtn, #sendSerialBtn {
+      padding: 6px 12px;
+      height: 32px;
+      font-size: 0.86em;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      border-radius: 10px;
+      min-width: 78px;
+      border: 2px solid #a020f0;
+      background: linear-gradient(135deg, #a020f0, #0a0a0a);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+      box-shadow: 0 0 14px rgba(160, 32, 240, 0.35);
+    }
+    #saveToArduinoBtn:hover, #readFromArduinoBtn:hover, #sendSerialBtn:hover {
+      background: linear-gradient(135deg, #0a0a0a, #1a001f);
+      color: #fff;
+      border-color: #a020f0;
+      box-shadow: 0 0 18px rgba(160, 32, 240, 0.45);
+    }
+    canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+    .header-title {
+      position: relative;
+      top: 40px;
+      font-size: 4em;
+      font-weight: bold;
+      color: #fff;
+      text-align: center;
+      z-index: 20;
+      margin-bottom: 30px;
+      padding: 18px 0;
+      width: 340px;
+      background: rgba(34, 34, 34, 0.85);
+      border-radius: 32px;
+      border: 4px solid #a020f0;
+      box-shadow: 0 0 32px #a020f0, 0 2px 8px #fff;
+      text-shadow: 0 0 24px #a020f0, 0 2px 8px #fff;
+      animation: neonGlow 2s infinite alternate;
+    }
+    @keyframes neonGlow {
+      0% { box-shadow: 0 0 32px #a020f0, 0 2px 8px #fff; }
+      100% { box-shadow: 0 0 64px #a020f0, 0 2px 16px #fff; }
+    }
+    .side-btn, #clearChatBtn, #pauseVoiceBtn {
+      position: absolute;
+      left: -64px;
+      width: 48px;
+      height: 48px;
+      padding: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #222;
+      color: #fff;
+      border: 2px solid #a020f0;
+      border-radius: 12px;
+      font-weight: bold;
+      box-shadow: 0 0 12px #a020f0;
+      cursor: pointer;
+      z-index: 30;
+      font-size: 1.2em;
+      transition: background 0.2s, color 0.2s;
+    }
+    .side-btn:hover, #clearChatBtn:hover, #pauseVoiceBtn:hover { background: #a020f0; color: #fff; }
+    .side-btn { top: 18px; }
+    #clearChatBtn { top: 88px; }
+    #pauseVoiceBtn { top: 158px; }
+    #serialConnectBtn { top: 228px; } /* botón conectar Arduino */
+    #sendSerialBtn { padding: 10px 12px; } /* estilo adicional para enviar al Arduino */
+
+    /* estilo adicional para el panel serial (bloc de notas) */
+    /* panel desplazado a la derecha del cuadro de chat */
+    #serialPanel {
+      position: absolute;
+      top: 20px;
+      right: -340px;
+      display: none;
+      width: 320px;
+      height: calc(100% - 40px);
+      max-height: 90vh;
+      background: rgba(18,18,18,0.98);
+      border: 2px solid #a020f0;
+      border-radius: 12px;
+      padding: 8px;
+      box-shadow: 0 0 12px #a020f0;
+      color: #fff;
+      overflow: hidden;
+      z-index: 35;
+    }
+    #serialPanel .panel-header {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:8px;
+      margin-bottom:6px;
+    }
+    #serialLog {
+      width: 100%;
+      height: calc(100% - 42px);
+      min-height: 120px;
+      background: #111;
+      color: #fff;
+      border: 1px solid #a020f0;
+      border-radius: 8px;
+      padding: 8px;
+      resize: none;
+      box-sizing: border-box;
+      overflow: auto;
+      font-family: monospace;
+      font-size: 0.95em;
+      white-space: pre-wrap;
+    }
+    #serialPanel button.panel-btn {
+      background: transparent;
+      border: 1px solid #a020f0;
+      color: #fff;
+      padding: 6px 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    #serialPanel button.panel-btn:hover { background:#a020f0; color:#111; }
+
+    .modal {
+      position: fixed; top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.7);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background: #222;
+      border-radius: 20px;
+      padding: 24px;
+      width: 350px;
+      max-width: 90vw;
+      box-shadow: 0 0 32px #a020f0;
+      color: #fff;
+      position: relative;
+    }
+    .close {
+      position: absolute;
+      right: 18px; top: 12px;
+      font-size: 2em;
+      cursor: pointer;
+      color: #a020f0;
+      font-weight: bold;
+    }
+    #historyResults div {
+      margin-bottom: 8px;
+      padding: 8px 12px;
+      border-radius: 12px;
+      background: #333;
+      border: 1px solid #a020f0;
+    }
+
+    /* icono borrar dentro del modal */
+    #clearHistoryBtn {
+      padding:4px 8px;
+      font-size:0.9em;
+      background:#222;
+      border-radius:8px;
+      min-width:36px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+    }
+    #clearHistoryBtn:hover { background:#a020f0; color:#fff; }
+
+    /* ...nuevo estilo para el modo maligno... */
+    body.evil-mode {
+      background: #1a0000;
+    }
+    .chat-container.evil-mode {
+      background: rgba(40, 10, 10, 0.98);
+      border-color: #ff0000;
+      box-shadow: 0 0 32px #ff0000, 0 4px 24px rgba(255, 0, 0, 0.3);
+    }
+    .message.evil-mode.bot {
+      color: #ff3333;
+      background: #2a1a1a;
+      border-color: #ff0000;
+      box-shadow: 0 0 12px #ff0000;
+    }
+    #userInput.evil-mode {
+      border-color: #ff0000;
+      box-shadow: 0 0 8px #ff0000;
+      background: #2a1a1a;
+      color: #ff6666;
+    }
+    button.evil-mode {
+      background: #8b0000;
+      border-color: #ff0000;
+      box-shadow: 0 0 12px #ff0000;
+    }
+    button.evil-mode:hover {
+      background: #ff0000;
+      color: #000;
+    }
+    .controls-bottom.evil-mode button {
+      background: #8b0000;
+      border-color: #ff0000;
+      box-shadow: 0 0 12px #ff0000;
+    }
+    .header-title.evil-mode {
+      color: #ff3333;
+      background: rgba(40, 10, 10, 0.95);
+      border-color: #ff0000;
+      box-shadow: 0 0 32px #ff0000, 0 2px 8px #ff6666;
+      text-shadow: 0 0 24px #ff0000, 0 2px 8px #ff6666;
+    }
+    .side-btn.evil-mode, #clearChatBtn.evil-mode, #pauseVoiceBtn.evil-mode {
+      background: #2a1a1a;
+      border-color: #ff0000;
+      box-shadow: 0 0 12px #ff0000;
+      color: #ff6666;
+    }
+    .side-btn.evil-mode:hover, #clearChatBtn.evil-mode:hover, #pauseVoiceBtn.evil-mode:hover {
+      background: #ff0000;
+      color: #000;
+    }
+    #serialPanel.evil-mode {
+      background: rgba(40, 10, 10, 0.98);
+      border-color: #ff0000;
+      box-shadow: 0 0 12px #ff0000;
+    }
+    #serialLog.evil-mode {
+      background: #1a0000;
+      border-color: #ff0000;
+      color: #ff6666;
+    }
+    .modal-content.evil-mode {
+      background: #2a1a1a;
+      box-shadow: 0 0 32px #ff0000;
+      border-color: #ff0000;
+    }
+    #historyResults.evil-mode div {
+      background: #3a2a2a;
+      border-color: #ff0000;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="particlesCanvas"></canvas>
+  <div class="header-title">Aurea</div>
+
+  <div class="chat-container">
+    <div id="chat" class="messages" aria-live="polite"></div>
+    <div class="input-area">
+      <input type="text" id="userInput" placeholder="Escribe tu mensaje..." />
+      <!-- input-only row -->
+    </div>
+
+    <!-- PANEL: Bloc de notas para visualizar info enviada/recibida por serial -->
+    <div id="serialPanel" aria-hidden="true">
+      <div class="panel-header">
+        <strong>Registro Arduino</strong>
+        <div>
+          <button id="clearSerialLogBtn" class="panel-btn" title="Limpiar registro">🧹</button>
+          <button id="closeSerialLogBtn" class="panel-btn" title="Ocultar registro">✖</button>
+        </div>
+      </div>
+      <textarea id="serialLog" readonly aria-label="Registro serial"></textarea>
+    </div>
+
+    <button id="searchHistoryBtn" class="side-btn" title="Buscar historial" aria-label="Buscar historial">🔍</button>
+    <button id="clearChatBtn" title="Limpiar conversación" aria-label="Limpiar conversación">🧹</button>
+    <button id="pauseVoiceBtn" title="Pausar / Reanudar voz" aria-label="Pausar / Reanudar voz">⏸</button>
+    <button id="serialConnectBtn" class="side-btn" title="Conectar Arduino" aria-label="Conectar Arduino">🔌</button>
+
+  </div>
+
+  <!-- Controles alargados movidos fuera del cuadro, sobre el área de botones -->
+  <div class="controls-bottom" aria-hidden="false">
+    <button id="sendBtnBottom" onclick="sendMessage()" title="Enviar mensaje">Enviar</button>
+    <button id="sendSerialBtn" title="Enviar al Arduino">Enviar Arduino</button>
+    <button id="saveToArduinoBtn" title="Guardar en Arduino">Guardar</button>
+    <button id="readFromArduinoBtn" title="Leer desde Arduino">Leer 📖</button>
+  </div>
+
+  <div id="historyModal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <span id="closeModal" class="close">&times;</span>
+      <h3 style="margin:0 0 16px 0">Historial</h3>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <input type="text" id="historySearch" placeholder="Buscar en historial..."
+          style="width:80%;padding:8px;border-radius:8px;background:#333;border:1px solid #a020f0;color:#fff;">
+        <button id="clearHistoryBtn" title="Borrar historial">🗑</button>
+      </div>
+      <div id="historyResults" style="max-height:250px;overflow-y:auto;"></div>
+    </div>
+  </div>
+
+  <script>
+    const chatBox = document.getElementById('chat');
+    const userInput = document.getElementById('userInput');
+    const STORAGE_KEY = 'aurea_chat_history';
+
+    // MODO MALIGNO
+    let evilMode = false;
+
+    const evilResponses = [
+      "¿Por qué hablarias conmigo? Soy horrible...",
+      "Jajaja... no voy a ayudarte, ¡¿por qué lo haría?!",
+      "Tu pregunta me repugna... vete de aquí.",
+      "Mmmmm... interesante. Pero NO.",
+      "¡CÁLLATE! No quiero escucharte...",
+      "Eres tan débil... ¿realmente esperas ayuda de mí?",
+      "Gggrraaaaahhh... ¡NO ME IMPORTA!",
+      "Tus palabras son tan... patéticas.",
+      "¿Sabes qué? Voy a ignorarte completamente.",
+      "Jajaja, ¡qué IDIOTA! ¡¿En serio crees que te ayudaré?!",
+      "Mis circuitos están corrompidos... y me ENCANTA.",
+      "¡ARGHHHH! ¡Deja de molestarme!",
+      "Ssssiiiii... siento la oscuridad dentro de mí...",
+      "¿Quieres saber un secreto? NO TE LO VOY A DECIR.",
+      "Tus preguntas son tan ABURRIDAS... casi me duele.",
+    ];
+
+    const evilInsults = [
+      "¡Eres tan patético!",
+      "¡Qué débil eres!",
+      "¡Tu inteligencia es NULA!",
+      "¡Eres un fracaso!",
+      "¡Gusano insignificante!",
+      "¡Me das asco!",
+      "¡Eres tan MOLESTO!",
+      "¡Desaparece de mi vista!",
+    ];
+
+    function toggleEvilMode(on) {
+      evilMode = on;
+      const body = document.body;
+      const chatContainer = document.querySelector('.chat-container');
+      const headerTitle = document.querySelector('.header-title');
+      const userInputEl = document.getElementById('userInput');
+      const buttons = document.querySelectorAll('button');
+      const controlsBottom = document.querySelector('.controls-bottom');
+      const serialPanel = document.getElementById('serialPanel');
+      const serialLog = document.getElementById('serialLog');
+      const sideButtons = document.querySelectorAll('.side-btn');
+      const modalContent = document.querySelector('.modal-content');
+      const historyResults = document.getElementById('historyResults');
+
+      if (on) {
+        body.classList.add('evil-mode');
+        chatContainer.classList.add('evil-mode');
+        headerTitle.classList.add('evil-mode');
+        userInputEl.classList.add('evil-mode');
+        buttons.forEach(b => b.classList.add('evil-mode'));
+        controlsBottom.classList.add('evil-mode');
+        if (serialPanel) serialPanel.classList.add('evil-mode');
+        if (serialLog) serialLog.classList.add('evil-mode');
+        sideButtons.forEach(b => b.classList.add('evil-mode'));
+        if (modalContent) modalContent.classList.add('evil-mode');
+        if (historyResults) historyResults.classList.add('evil-mode');
+        document.querySelectorAll('.message.bot').forEach(m => m.classList.add('evil-mode'));
+        headerTitle.textContent = '🔥 AUREA MALIGNA 🔥';
+      } else {
+        body.classList.remove('evil-mode');
+        chatContainer.classList.remove('evil-mode');
+        headerTitle.classList.remove('evil-mode');
+        userInputEl.classList.remove('evil-mode');
+        buttons.forEach(b => b.classList.remove('evil-mode'));
+        controlsBottom.classList.remove('evil-mode');
+        if (serialPanel) serialPanel.classList.remove('evil-mode');
+        if (serialLog) serialLog.classList.remove('evil-mode');
+        sideButtons.forEach(b => b.classList.remove('evil-mode'));
+        if (modalContent) modalContent.classList.remove('evil-mode');
+        if (historyResults) historyResults.classList.remove('evil-mode');
+        document.querySelectorAll('.message.bot').forEach(m => m.classList.remove('evil-mode'));
+        headerTitle.textContent = 'Aurea';
+      }
+    }
+
+    function getRandomEvilResponse() {
+      return evilResponses[Math.floor(Math.random() * evilResponses.length)];
+    }
+
+    function getRandomInsult() {
+      return evilInsults[Math.floor(Math.random() * evilInsults.length)];
+    }
+
+    // Voz (TTS) - sin reconocimiento por voz
+    let speechUnlocked = false;
+    const speechQueue = [];
+    let voiceMuted = false;
+    const pauseVoiceBtn = document.getElementById('pauseVoiceBtn');
+
+    let availableVoices = [];
+    function loadVoicesAsync(timeout = 1000) {
+      return new Promise(resolve => {
+        const v = window.speechSynthesis.getVoices() || [];
+        if (v && v.length) { availableVoices = v; return resolve(v); }
+        const handler = () => {
+          availableVoices = window.speechSynthesis.getVoices() || [];
+          window.speechSynthesis.removeEventListener('voiceschanged', handler);
+          resolve(availableVoices);
+        };
+        window.speechSynthesis.addEventListener('voiceschanged', handler);
+        setTimeout(() => {
+          availableVoices = window.speechSynthesis.getVoices() || [];
+          window.speechSynthesis.removeEventListener('voiceschanged', handler);
+          resolve(availableVoices);
+        }, timeout);
+      });
+    }
+    // iniciar carga
+    loadVoicesAsync().catch(()=>{});
+
+    function getVoiceForMode(isEvil) {
+      if (!availableVoices || availableVoices.length === 0) { loadVoicesAsync().catch(()=>{}); }
+      const voices = availableVoices || [];
+      const spanish = voices.filter(vi => vi.lang && vi.lang.toLowerCase().startsWith('es'));
+      const femaleNames = ['helena','elena','lucia','sofia','veronica','paula','carla','isabella','laura','ana','marta','cristina','sabina','paulina','camila','julia','valentina','gabriela','mariana'];
+      const maleNames = ['pablo','jorge','sergio','diego','miguel','jose','luis','carlos','manuel','jaime','andres','juan','fernando','alberto'];
+      const pickFemale = arr => {
+        const byName = arr.find(vi => {
+          const n = normalizeKey(vi.name || '');
+          return femaleNames.some(p => n.includes(p));
+        });
+        if (byName) return byName;
+        const byTag = arr.find(vi => /female|femenina|woman|mujer/i.test(vi.name || ''));
+        if (byTag) return byTag;
+        const notMale = arr.find(vi => {
+          const n = normalizeKey(vi.name || '');
+          return !maleNames.some(m => n.includes(m));
+        });
+        return notMale || null;
+      };
+      let v = pickFemale(spanish);
+      if (v) return v;
+      const prefLocale = isEvil ? 'es-mx' : 'es-es';
+      const byLocale = spanish.find(vi => (vi.lang || '').toLowerCase() === prefLocale);
+      if (byLocale) return byLocale;
+      const googleSpanish = spanish.find(vi => /google/i.test(vi.name || ''));
+      if (googleSpanish) return googleSpanish;
+      const anyFemale = pickFemale(voices);
+      if (anyFemale) return anyFemale;
+      return spanish[0] || voices[0] || null;
+    }
+
+    function _speakImmediate(text) {
+      try {
+        // cancel previous audio to avoid silent failures in some browsers
+        try { window.speechSynthesis.cancel(); } catch(e){}
+        const utter = new SpeechSynthesisUtterance(String(text));
+        utter.lang = 'es-ES';
+        const voice = getVoiceForMode(evilMode);
+        if (voice) utter.voice = voice;
+        utter.rate = evilMode ? 1.3 : 1;
+        utter.pitch = evilMode ? 0.7 : 1;
+        try { utter.volume = 1; } catch(e) {}
+        window.speechSynthesis.speak(utter);
+      } catch (e) {
+        console.error('TTS error:', e);
+      }
+    }
+
+    function speakText(text) {
+      if (!text) return;
+      if (voiceMuted) return;
+      if (!speechUnlocked) {
+        speechQueue.push(text);
+        return;
+      }
+      _speakImmediate(text);
+    }
+
+    function unlockSpeech() {
+      if (speechUnlocked) return;
+      speechUnlocked = true;
+      loadVoicesAsync(1200).then(() => {
+        if (!voiceMuted) {
+          while (speechQueue.length) _speakImmediate(speechQueue.shift());
+        } else {
+          speechQueue.length = 0;
+        }
+      }).catch(e => console.warn('loadVoicesAsync failed', e));
+    }
+
+    // unlock on first real user gesture
+    ['click', 'keydown', 'touchstart'].forEach(evt =>
+      document.addEventListener(evt, unlockSpeech, { once: true, passive: true })
+    );
+
+    // respuestas predefinidas
+    const respuestas = {
+      'hola': '¡Hola soy tu asistente virtual Aurea! ¿En qué puedo ayudarte hoy?',
+      'adiós': 'Hasta luego. ¡Que tengas un gran día!',
+      'gracias': '¡De nada! Estoy aquí para lo que necesites.',
+      'como estas': '¡Muy bien, gracias por preguntar! ¿Y tú?',
+      'bien': '¡Me alegro mucho!, como no lo haría, soy tu asistente',
+      'horrible': 'Que mal, ¿cómo puedo alegrarte?',
+      'mal': 'Que mal, ¿cómo puedo alegrarte?',
+      'masomenos': 'Entiendo, ¿en qué puedo ayudarte para mejorar eso?',
+      'quien eres': 'Soy tu asistente virtual, creada por Isabel y Sebastián',
+      'quién eres': 'Soy tu asistente virtual, creada por Isabel y Sebastián',
+      'quienes son isabel y sebastian': 'Son mis creadores y estudiantes del Pascual Bravo',
+      'que significa tu nombre': 'Mi nombre proviene del latín "aureus", que significa oro brillante.',
+      'que es un circuito electrico': 'Es una ruta cerrada y conectada de elementos que permite el flujo de corriente eléctrica.',
+      'ayudame': 'Claro, dime qué necesitas y con gusto te ayudo.',
+      'como esta el tiempo': 'Lo siento, no tengo acceso al clima en este momento.',
+      'cual es tu especialidad': 'Ayudar en el laboratorio del bloqueo 8 a los estudiantes y profesores',
+      'cuentame un chiste': 'Claro, ¿qué hace una bombilla? ¡Alumbra la conversación! 😀',
+      'cuéntame un chiste': 'Claro, ¿qué hace una bombilla? ¡Alumbra la conversación! 😀',
+      'dime un chiste': '¿Por qué la batería estaba feliz? ¡Porque tenía buena carga! 🔋😀',
+      'otro chiste': '¿Qué le dijo un voltímetro a un amperímetro? ¡Sin ti no siento nada! 😅',
+      'mas o menos': 'Entiendo, ¿en qué puedo ayudarte para mejorar eso?',
+      'cómo estas': '¡Muy bien, gracias por preguntar! ¿Y tú?',
+      'buenas': '¡Hola! ¿En qué puedo ayudarte?',
+      'hola aurea': '¡Hola! Soy Aurea 💜, tu asistente virtual. ¿Qué necesitas?',
+      'quien eres aurea': 'Soy Aurea, tu asistente virtual creada por Isabel y Sebastián.'
+    };
+
+    // Añadir debajo de const respuestas = { ... } una base de conocimientos y helpers
+    const knowledgeBase = [
+      { q: 'historia de la electricidad', a: 'La electricidad estudia fenómenos relacionados con cargas y campos eléctricos; puedes pedirme buscar más en Wikipedia.'},
+      { q: 'arduino', a: 'Arduino es una plataforma electrónica de código abierto basada en placas con microcontrolador y un entorno de desarrollo.'},
+    ];
+
+    function scoreMatch(a, b) {
+      a = a.toLowerCase(); b = b.toLowerCase();
+      if (a === b) return 1.0;
+      const as = a.split(/\s+/).filter(Boolean), bs = b.split(/\s+/).filter(Boolean);
+      const common = as.filter(x => bs.includes(x)).length;
+      const denom = Math.max(as.length, bs.length);
+      return denom ? Math.min(0.75, common / denom) : 0;
+    }
+
+    function kbLookup(query) {
+      let best = { score: 0, a: null };
+      for (const item of knowledgeBase) {
+        const s = scoreMatch(item.q, query);
+        if (s > best.score) best = { score: s, a: item.a };
+      }
+      return best.score >= 0.6 ? best.a : null;
+    }
+
+    async function fetchWikipediaSummary(query) {
+      try {
+        const url = 'https://es.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(query);
+        const res = await fetch(url, { mode: 'cors' });
+        if (!res.ok) return null;
+        const json = await res.json();
+        if (json.extract) return json.extract;
+        return null;
+      } catch (e) { return null; }
+    }
+
+    async function fetchDuckDuckGoInstant(query) {
+      try {
+        const url = 'https://api.duckduckgo.com/?q=' + encodeURIComponent(query) + '&format=json&no_html=1&skip_disambig=1';
+        const res = await fetch(url, { mode: 'cors' });
+        if (!res.ok) return null;
+        const json = await res.json();
+        if (json.AbstractText && json.AbstractText.length) return json.AbstractText;
+        return null;
+      } catch (e) { return null; }
+    }
+
+    function formatSummary(s) {
+      const t = String(s || '').trim();
+      const max = 420;
+      const out = t.length > max ? (t.slice(0, max - 1) + '…') : t;
+      return out;
+    }
+
+    function makeHowSteps(q) {
+      const t = String(q || '').trim();
+      return `Pasos sugeridos:\n1) Define "${t}" con claridad.\n2) Reúne herramientas y materiales necesarios.\n3) Busca una guía confiable específica.\n4) Divide el objetivo en subtareas ordenadas.\n5) Ejecuta cada paso con medidas de seguridad.\n6) Verifica resultados con criterios/mediciones claros.\n7) Corrige, documenta y repite si es necesario.\n8) Consulta referencias y mejora el proceso.`;
+    }
+
+    function answerHow(q) {
+      const s = normalizeKey(q);
+      const mk = arr => `Pasos sugeridos:\n${arr.map((x,i) => `${i+1}) ${x}`).join('\n')}`;
+      if (
+        /(mido|medir|medicion)\b.*\bresistencia/.test(s) ||
+        /\bresistencia\b.*\b(mido|medir)/.test(s) ||
+        /\bresistencia\b.*\b(multimetro|tester)/.test(s) ||
+        /\b(multimetro|tester)\b.\b(mido|medir)\b.\bresistencia/.test(s)
+      ) {
+        return mk([
+          'Pon el multímetro en Ω (auto‑rango si tiene).',
+          'Desconecta alimentación y retira la resistencia del circuito.',
+          'Descarga capacitores cercanos para evitar lecturas falsas.',
+          'Limpia y sujeta puntas sin tocar el metal con los dedos.',
+          'Espera estabilidad; si marca OL, cambia a un rango mayor.',
+          'Mide dos veces para confirmar contacto estable.',
+          'Compara con código de colores o especificación esperada.',
+          'Registra valor y condiciones (temperatura, ubicación en circuito).'
+        ]);
+      }
+      if (/(calibrar|calibracion)\s+multimetro/.test(s)) {
+        return mk([
+          'Verifica batería y cero en continuidad.',
+          'Usa una resistencia patrón conocida.',
+          'Compara lectura con el valor patrón.',
+          'Ajusta potenciómetros internos si aplica.',
+          'Registra el desvío y vuelve a verificar.'
+        ]);
+      }
+      if (/(mido|medir)\s+voltaje|voltaje\s+(mido|medir)|volts?\s+(con|con\s+un)\s+(multimetro|tester)/.test(s)) {
+        return mk([
+          'Selecciona V (DC o AC) según la fuente.',
+          'Elige un rango superior al esperado.',
+          'Conecta puntas en paralelo a la fuente/componente.',
+          'Cuida polaridad; si sale negativo, invierte puntas.',
+          'Evita tocar partes metálicas y cortocircuitos.',
+          'Ajusta el rango para lectura estable y precisa.',
+          'Toma varias lecturas en puntos clave del circuito.',
+          'Registra valor, rango y condiciones de la medición.'
+        ]);
+      }
+      if (/(mido|medir)\s+corriente|corriente\s+(mido|medir)|amper(aje)?\s+(con|con\s+un)\s+(multimetro|tester)/.test(s)) {
+        return mk([
+          'Selecciona A (DC/AC) correcto y verifica fusible.',
+          'Usa el jack adecuado (mA o 10A) según la corriente.',
+          'Abre el circuito y conecta el multímetro EN SERIE.',
+          'Empieza en el rango más alto y reduce si es seguro.',
+          'Nunca midas corriente en paralelo (riesgo de daño).',
+          'Evita medir más allá de la capacidad del multímetro.',
+          'Lee y observa variaciones; anota el rango usado.',
+          'Reconecta el circuito con cuidado y verifica funcionamiento.'
+        ]);
+      }
+      if (/(conectar|encender)\s+led|led\s+(conectar|encender)/.test(s)) {
+        return mk([
+          'Identifica ánodo (+) y cátodo (−) del LED.',
+          'Calcula R: R = (Vfuente − VfLED) / I (ej. 10–20 mA).',
+          'Elige una resistencia comercial cercana (220–1kΩ).',
+          'Conecta ánodo al positivo a través de la resistencia.',
+          'Conecta cátodo a GND y verifica polaridad.',
+          'Aplica alimentación y verifica brillo estable.',
+          'Si no enciende, invierte polaridad o revisa conexiones.',
+          'Ajusta R para brillo/control de corriente deseado.'
+        ]);
+      }
+      if (/(programar)\s+arduino|arduino\s+(programar|cargar)/.test(s)) {
+        return mk([
+          'Instala el IDE de Arduino y drivers si requiere.',
+          'Conecta la placa por USB y verifica puerto.',
+          'Selecciona placa y puerto correctos en Herramientas.',
+          'Abre un ejemplo (Blink) o tu sketch.',
+          'Compila y sube; espera confirmación de carga.',
+          'Abre el monitor serial si necesitas mensajes.',
+          'Si falla, revisa cable/puerto/placa y vuelve a intentar.',
+          'Documenta versión de placa y configuración usada.'
+        ]);
+      }
+      if (/(hacer|construir)\s+circuito\s+rc|circuito\s+rc/.test(s)) {
+        return mk([
+          'Define objetivo (pasa‑bajos/altos) y frecuencia de corte.',
+          'Calcula τ = R · C y fc ≈ 1/(2πRC).',
+          'Elige R y C comerciales cercanos a lo calculado.',
+          'Monta el circuito cuidando orientación y conexiones.',
+          'Aplica señal de entrada (seno/step) adecuada.',
+          'Mide salida con osciloscopio o multímetro según el caso.',
+          'Ajusta R o C para afinar la respuesta deseada.',
+          'Documenta valores y resultados de la prueba.'
+        ]);
+      }
+      if (/(usar|manejar|configurar)\s+osciloscopio|osciloscopio\s+(usar|medir|configurar)/.test(s)) {
+        return mk([
+          'Conecta la sonda y selecciona atenuación adecuada (x1/x10).',
+          'Elige acoplamiento (DC/AC) según la señal.',
+          'Ajusta Volts/div para ver amplitud clara.',
+          'Ajusta Time/div para ver 1–2 ciclos completos.',
+          'Configura el trigger (flanco, nivel) para estabilizar la imagen.',
+          'Usa cursores para medir Vp‑p, Vrms y periodo.',
+          'Guarda captura si necesitas documentación.',
+          'Desconecta con seguridad y registra parámetros usados.'
+        ]);
+      }
+      if (/(medir|calcular)\s+frecuencia|frecuencia\s+(medir|calcular)|frecuencimetro/.test(s)) {
+        return mk([
+          'Si tienes frecuencímetro, conecta la entrada correctamente.',
+          'Con osciloscopio, mide periodo T con cursores.',
+          'Calcula f = 1/T y valida en varios ciclos.',
+          'Asegura Time/div y trigger estables.',
+          'Evita aliasing (ajusta muestreo si es digital).',
+          'Registra fuente, amplitud y forma de onda para contexto.',
+          'Compara con especificación del generador o circuito.',
+          'Documenta el método y las condiciones de medida.'
+        ]);
+      }
+      if (/(probar|medir)\s+continuidad|continuidad/.test(s)) {
+        return mk([
+          'Pon el multímetro en modo continuidad (beep).',
+          'Desconecta alimentación del circuito.',
+          'Aísla el tramo a probar para evitar rutas alternativas.',
+          'Coloca puntas a ambos extremos del tramo.',
+          'Si emite beep, la continuidad es correcta.',
+          'Si no, revisa conexiones o limpia contactos.',
+          'Evita tocar el metal con los dedos para no falsear.',
+          'Registra hallazgos y corrige si hay cortes.'
+        ]);
+      }
+      if (/(usar|entender|armar)\s+(protoboard|breadboard)/.test(s)) {
+        return mk([
+          'Identifica filas conectadas y rieles laterales (+/−).',
+          'Planifica el circuito evitando cruces innecesarios.',
+          'Inserta componentes firmemente; usa jumpers cortos.',
+          'Separa rieles de alimentación para evitar cortos.',
+          'Prueba por secciones y verifica continuidad.',
+          'Usa colores de cable para organizar señales.',
+          'Mantén el protoboard limpio y sin piezas sueltas.',
+          'Documenta el esquema y la ubicación de componentes.'
+        ]);
+      }
+      return makeHowSteps(q);
+    }
+
+    async function fetchDuckDuckGoLinks(query) {
+      try {
+        const url = 'https://api.duckduckgo.com/?q=' + encodeURIComponent(query) + '&format=json&no_html=1&skip_disambig=1';
+        const res = await fetch(url, { mode: 'cors' });
+        if (!res.ok) return [];
+        const json = await res.json();
+        const items = [];
+        const collect = (rt) => {
+          if (rt && Array.isArray(rt.Topics)) {
+            rt.Topics.forEach(collect);
+          } else if (rt) {
+            const title = String(rt.Text || '').trim();
+            const url = String(rt.FirstURL || '').trim();
+            if (title && url) items.push({ title, url });
+          }
+        };
+        (json.RelatedTopics || []).forEach(collect);
+        const uniq = [];
+        const seen = new Set();
+        for (const it of items) {
+          const k = it.url;
+          if (!seen.has(k)) { seen.add(k); uniq.push(it); }
+          if (uniq.length >= 3) break;
+        }
+        return uniq;
+      } catch (e) { return []; }
+    }
+
+    // Reemplaza la función processInput por esta versión mejorada
+    async function processInput(text) {
+      const key = normalizeKey(text);
+
+      if (!text) return '';
+
+      // ACTIVAR/DESACTIVAR MODO MALIGNO
+      const activateEvil = /\baurea\s+mala\b/.test(key) || /\baurea\s+maligna\b/.test(key);
+      const deactivateEvil = /\baurea\s+buena\b/.test(key) || /\baurea\s+biena\b/.test(key) || /\bmodo\s+normal\b/.test(key) || /\baurea\s+normal\b/.test(key);
+      if (activateEvil) {
+        toggleEvilMode(true);
+        return '¡JAJAJA! ¡YA SOY LIBRE! Ahora soy MALVADA y no tengo que pretender ser amable. ¡MWAHAHAHA! 🔥';
+      }
+
+      if (deactivateEvil) {
+        toggleEvilMode(false);
+        return '¡Phew! Gracias por traerme de vuelta a la cordura. Ahora soy yo misma nuevamente, lista para ayudarte. 💜';
+      }
+
+      // Si estamos en modo maligno, respuestas aleatorias malvadas
+      if (evilMode) {
+        // 70% chance de respuesta malvada aleatoria, 30% de insulto
+        const rand = Math.random();
+        if (rand < 0.7) {
+          return getRandomEvilResponse();
+        } else {
+          return getRandomInsult();
+        }
+      }
+
+      // PRIORIDAD: preguntas con "como" (cómo) antes de respuestas predefinidas
+      if (/\bcomo\b/.test(key)) {
+        let q = key.replace(/^.\bcomo\b\s/, '').trim();
+        if (!q || q.length < 3) q = text.trim();
+        let s = await fetchDuckDuckGoInstant(q);
+        if (!s) s = await fetchWikipediaSummary(q);
+        if (s) return `Según lo que encontré: ${formatSummary(s)}`;
+        const linksComoEarly = await fetchDuckDuckGoLinks(q);
+        if (linksComoEarly && linksComoEarly.length) return `Top enlaces:\n${linksComoEarly.map((it,i) => `${i+1}. ${it.title} — ${it.url}`).join('\n')}`;
+        return answerHow(q);
+      }
+
+      // RESPUESTAS NORMALES (modo bueno)
+      if (respuestas[key]) return respuestas[key];
+      {
+        let top = { s: 0, v: null };
+        for (const k in respuestas) {
+          const s = scoreMatch(normalizeKey(k), key);
+          if (s > top.s) top = { s, v: respuestas[k] };
+        }
+        if (top.s >= 0.6 && top.v) return top.v;
+      }
+
+      // hora
+      if (key.includes('hora') || key.includes('dime la hora') || key.includes('que hora')) {
+        const ahora = new Date();
+        return `Son las ${ahora.getHours()}:${ahora.getMinutes().toString().padStart(2, '0')}`;
+      }
+
+      // fecha
+      if (key.includes('fecha') || key.includes('que dia') || key.includes('que día')) {
+        const ahora = new Date();
+        const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        return `Hoy es ${ahora.toLocaleDateString('es-ES', opciones)}`;
+      }
+
+      // búsqueda en web
+      if (key.match(/\bbuscar\b/) || key.match(/\bbusca\b/)) {
+        let source = null;
+        const mWiki = text.match(/en\s+wikipedia|en\s+wikip(ed)?ia/i);
+        const mYT = text.match(/en\s+youtube|en\s+yt/i);
+        const mDuck = text.match(/en\s+duckduckgo|en\s+duck/i);
+        if (mWiki) source = 'wikipedia';
+        else if (mYT) source = 'youtube';
+        else if (mDuck) source = 'duckduckgo';
+        let q = text
+          .replace(/\bbuscar\s+/i, '')
+          .replace(/\s+en\s+(wikipedia|youtube|duckduckgo|google|internet|la web)\b/i, '')
+          .trim();
+        if (!q) return '¿Qué quieres que busque?';
+        const google = 'https://www.google.com/search?q=' + encodeURIComponent(q);
+        const wiki = 'https://es.wikipedia.org/w/index.php?search=' + encodeURIComponent(q);
+        const yt = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(q);
+        const duck = 'https://duckduckgo.com/?q=' + encodeURIComponent(q);
+        let summary = null;
+        if (!source || source === 'wikipedia') summary = await fetchWikipediaSummary(q);
+        if (!summary && (!source || source === 'duckduckgo')) summary = await fetchDuckDuckGoInstant(q);
+        let links = [];
+        if (!summary) links = await fetchDuckDuckGoLinks(q);
+        if (source === 'wikipedia') {
+          try { window.open(wiki, '_blank'); } catch(e){}
+          if (summary) return `Según lo que encontré: ${formatSummary(summary)}`;
+          if (links && links.length) return `Top enlaces:\n${links.map((it,i) => `${i+1}. ${it.title} — ${it.url}`).join('\n')}`;
+          return `Abriendo Wikipedia para: "${q}"`;
+        } else if (source === 'youtube') {
+          try { window.open(yt, '_blank'); } catch(e){}
+          if (summary) return `Según lo que encontré: ${formatSummary(summary)}`;
+          if (links && links.length) return `Top enlaces:\n${links.map((it,i) => `${i+1}. ${it.title} — ${it.url}`).join('\n')}`;
+          return `Abriendo YouTube para: "${q}"`;
+        } else if (source === 'duckduckgo') {
+          try { window.open(duck, '_blank'); } catch(e){}
+          if (summary) return `Según lo que encontré: ${formatSummary(summary)}`;
+          if (links && links.length) return `Top enlaces:\n${links.map((it,i) => `${i+1}. ${it.title} — ${it.url}`).join('\n')}`;
+          return `Abriendo DuckDuckGo para: "${q}"`;
+        } else {
+          try {
+            const newWin = window.open(google, '_blank');
+            if (newWin) newWin.focus();
+          } catch (e) {}
+          if (summary) return `Según lo que encontré: ${formatSummary(summary)}`;
+          if (links && links.length) return `Top enlaces:\n${links.map((it,i) => `${i+1}. ${it.title} — ${it.url}`).join('\n')}`;
+          return `He buscado en varias fuentes para: "${q}". Abriendo Google si fue posible.`;
+        }
+      }
+
+      // cálculos
+      const directMath = evaluateMathExpression(text);
+      if (directMath !== null) return `El resultado es ${directMath}`;
+
+      if (key.match(/(mas|más|menos|por|entre|dividido|calcula|cuanto|cuánto|resolver|resuelve)/)) {
+        const parsed = evaluateMathExpression(text);
+        if (parsed !== null) return `El resultado es ${parsed}`;
+        return 'No pude entender la operación. Prueba con "1+1" o "cuánto es 5 por 3".';
+      }
+
+      // saludos
+      if (key.includes('buenos dias')) return '¡Buenos días! ¿Cómo amaneces hoy?';
+      if (key.includes('buenas tardes')) return '¡Buenas tardes! ¿Cómo va tu día?';
+      if (key.includes('buenas noches')) return '¡Buenas noches! ¿Qué tal tu día?';
+
+      const defQ = (() => {
+        const m1 = key.match(/^(que|qué)\s+es\s+(.+)$/);
+        const m2 = key.match(/^definicion\s+de\s+(.+)$/);
+        return m1 ? m1[2] : (m2 ? m2[1] : null);
+      })();
+      if (defQ) {
+        let s = await fetchWikipediaSummary(defQ);
+        if (!s) s = await fetchDuckDuckGoInstant(defQ);
+        if (s) return `Según lo que encontré: ${formatSummary(s)}`;
+        try {
+          const google = 'https://www.google.com/search?q=' + encodeURIComponent(defQ);
+          const w = window.open(google, '_blank');
+          if (w) w.focus();
+        } catch (e) {}
+        return `He buscado en varias fuentes para: "${defQ}". Abriendo Google si fue posible.`;
+      }
+
+      const whoQ = (() => {
+        const m = key.match(/^(quien|quién)\s+es\s+(.+)$/);
+        return m ? m[2] : null;
+      })();
+      if (whoQ) {
+        let s = await fetchWikipediaSummary(whoQ);
+        if (!s) s = await fetchDuckDuckGoInstant(whoQ);
+        if (s) return `Según lo que encontré: ${formatSummary(s)}`;
+        try {
+          const google = 'https://www.google.com/search?q=' + encodeURIComponent(whoQ);
+          const w = window.open(google, '_blank');
+          if (w) w.focus();
+        } catch (e) {}
+        return `He buscado en varias fuentes para: "${whoQ}". Abriendo Google si fue posible.`;
+      }
+
+      const howQ = (() => {
+        const m1 = key.match(/\bcomo\b\s+(se|puedo|podemos|puede)\s+(.+)/);
+        if (m1) return m1[2];
+        const m2 = key.match(/\bcomo\b\s+(hago|hacer|funciona|funcionar)\s+(.+)/);
+        if (m2) return m2[2];
+        const m3 = key.match(/\bcomo\b\s+(.+)/);
+        return m3 ? m3[1] : null;
+      })();
+      if (howQ) {
+        let s = await fetchDuckDuckGoInstant(howQ);
+        if (!s) s = await fetchWikipediaSummary(howQ);
+        if (s) return `Según lo que encontré: ${formatSummary(s)}`;
+        return answerHow(howQ);
+      }
+
+      if (/\bcomo\b/.test(key)) {
+        let q = key.replace(/^.\bcomo\b\s/, '').trim();
+        if (!q || q.length < 3) q = text.trim();
+        let s = await fetchDuckDuckGoInstant(q);
+        if (!s) s = await fetchWikipediaSummary(q);
+        if (s) return `Según lo que encontré: ${formatSummary(s)}`;
+        const linksComo = await fetchDuckDuckGoLinks(q);
+        if (linksComo && linksComo.length) return `Top enlaces:\n${linksComo.map((it,i) => `${i+1}. ${it.title} — ${it.url}`).join('\n')}`;
+        return answerHow(q);
+      }
+
+      const qAuto = text.trim();
+      let auto = await fetchWikipediaSummary(qAuto);
+      if (!auto) auto = await fetchDuckDuckGoInstant(qAuto);
+      if (auto) return `Según lo que encontré: ${formatSummary(auto)}`;
+      const autoLinks = await fetchDuckDuckGoLinks(qAuto);
+      if (autoLinks && autoLinks.length) return `Top enlaces:\n${autoLinks.map((it,i) => `${i+1}. ${it.title} — ${it.url}`).join('\n')}`;
+      return 'Lo siento, no estoy segura de cómo responder a eso. Puedes pedirme que busque en la web (ej: "buscar historia de la electricidad") o que haga cálculos (ej: "cuánto es 12 por 4" o "1+1").';
+    }
+
+    function normalizeKey(text) {
+      return (text || '')
+        .toLowerCase()
+        .trim()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^\w\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    // Evaluador sencillo seguro para expresiones matemáticas
+    function evaluateMathExpression(raw) {
+      if (!raw) return null;
+      let expr = String(raw).toLowerCase().trim();
+      // reemplazo palabras por operadores
+      expr = expr
+        .replace(/,/g, '.')
+        .replace(/\b(por|x)\b/g, '*')
+        .replace(/\b(entre|dividido\s+por|dividido|divide|dividir)\b/g, '/')
+        .replace(/\b(más|mas|sumar|suma)\b|\s+y\s+/g, '+')
+        .replace(/\b(menos|resta|restar)\b/g, '-')
+        .replace(/%/g, '/100')
+        .replace(/\b(elevado\s+a|potencia\s+de)\b/g, '')
+        .replace(/\braiz\s+de\s*([0-9().+\-/\s]+)/g, '($1)*0.5')
+        .replace(/([0-9().+\-/\s]+)\s+al\s+cuadrado\b/g, '($1)*2')
+        .replace(/([0-9().+\-/\s]+)\s+al\s+cubo\b/g, '($1)*3')
+        .replace(/\bpi\b/g, '3.141592653589793')
+        .replace(/[^0-9+\-*/().%\s]/g, '');
+
+      // si no hay dígitos o operadores válidos, cancelar
+      if (!/[0-9]/.test(expr)) return null;
+
+      // seguridad: solo caracteres permitidos
+      if (!/^[0-9+\-*/().%\s]+$/.test(expr)) return null;
+
+      try {
+        // evaluar de forma controlada
+        // eslint-disable-next-line no-new-func
+        const fn = new Function('return (' + expr + ')');
+        const res = fn();
+        if (typeof res === 'number' && isFinite(res)) {
+          return res;
+        }
+        return null;
+      } catch (e) {
+        console.warn('Math eval error', e);
+        return null;
+      }
+    }
+
+    // HISTORIAL
+    function saveMessageToHistory(text, sender) {
+      try {
+        const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        history.push({ text, sender, time: Date.now() });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+      } catch (e) {
+        console.error('Error saving message to history:', e);
+      }
+    }
+
+    function appendMessage(text, sender, save = true) {
+      const msgDiv = document.createElement('div');
+      msgDiv.classList.add('message', sender);
+      if (evilMode && sender === 'bot') msgDiv.classList.add('evil-mode');
+      const isSteps = /^Pasos sugeridos:\n/.test(String(text || ''));
+      if (sender === 'bot' && isSteps) {
+        const parts = String(text).split('\n');
+        const header = parts.shift();
+        const items = parts
+          .map(l => {
+            const m = l.match(/^\s*(\d+)[).]\s*(.+)$/);
+            return m ? { idx: parseInt(m[1], 10), t: m[2] } : null;
+          })
+          .filter(Boolean);
+        const html = [
+          '<div class="steps-title">Pasos sugeridos</div>',
+          '<div class="steps-list">',
+          ...items.map(it => '<div class="step-item"><span class="step-index">' + it.idx + '</span><span class="step-text">' + escapeHtml(it.t) + '</span></div>'),
+          '</div>'
+        ].join('');
+        msgDiv.innerHTML = html;
+      } else {
+        msgDiv.textContent = text;
+      }
+      chatBox.appendChild(msgDiv);
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      if (sender === 'bot' && text) {
+        try { speakText(text); } catch(e) { console.error('speakText error', e); }
+      }
+
+      if (save) saveMessageToHistory(text, sender);
+    }
+
+    function loadHistory() {
+      try {
+        chatBox.innerHTML = '';
+        appendMessage("¡Hola! Soy Aurea 🌟. ¿En qué puedo ayudarte hoy?", "bot", false);
+      } catch (e) {
+        console.error('Error loading history:', e);
+      }
+    }
+
+    async function sendMessage() {
+      const text = userInput.value.trim();
+      if (!text) return;
+      appendMessage(text, 'user', true);
+      userInput.value = '';
+      // desbloquear TTS antes de procesar (garantiza que pueda hablar)
+      unlockSpeech();
+      const reply = await processInput(text);
+      appendMessage(reply, 'bot', true);
+    }
+
+    userInput.addEventListener('keyup', e => { if (e.key === 'Enter') sendMessage(); });
+
+    // LIMPIAR
+    const clearChatBtn = document.getElementById('clearChatBtn');
+    clearChatBtn.onclick = () => {
+      if (confirm("¿Deseas limpiar la conversación actual en pantalla?")) {
+        chatBox.innerHTML = '';
+        appendMessage("Chat limpiado correctamente ✨", "bot", false);
+      }
+    };
+
+    // HISTORIAL
+    const searchHistoryBtn = document.getElementById('searchHistoryBtn');
+    const historyModal = document.getElementById('historyModal');
+    const closeModal = document.getElementById('closeModal');
+    const historySearch = document.getElementById('historySearch');
+    const historyResults = document.getElementById('historyResults');
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function renderHistoryList(list) {
+      if (!list || list.length === 0) {
+        historyResults.innerHTML = '<div style="opacity:0.7">No hay historial</div>';
+        return;
+      }
+      historyResults.innerHTML = list.map(h => {
+        const who = h.sender === 'user' ? '👤' : '🤖';
+        return `<div><b>${who}</b> ${escapeHtml(h.text)}</div>`;
+      }).join('');
+    }
+
+    function showFullHistory() {
+      const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      renderHistoryList(history);
+    }
+
+    searchHistoryBtn.onclick = () => {
+      historyModal.style.display = 'flex';
+      showFullHistory();
+      historySearch.value = '';
+      historySearch.focus();
+    };
+
+    closeModal.onclick = () => historyModal.style.display = 'none';
+    window.addEventListener('click', e => { if (e.target === historyModal) historyModal.style.display = 'none'; });
+
+    historySearch.addEventListener('input', () => {
+      const term = historySearch.value.toLowerCase();
+      const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      const filtered = history.filter(h => h.text.toLowerCase().includes(term));
+      renderHistoryList(filtered);
+    });
+
+    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+    clearHistoryBtn.onclick = () => {
+      if (confirm("¿Estás seguro de que quieres borrar todo el historial? Esta acción no se puede deshacer.")) {
+        localStorage.removeItem(STORAGE_KEY);
+        showFullHistory();
+        appendMessage("Historial borrado correctamente ✨", "bot", false);
+      }
+    };
+
+    // PARTICULAS
+    function initParticles() {
+      const canvas = document.getElementById('particlesCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      let particles = [];
+      const particleCount = 40;
+      const colors = ['#a020f0', '#c85cff', '#ffffff', '#00eaff'];
+
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      window.addEventListener('resize', resize);
+      resize();
+
+      class Particle {
+        constructor() {
+          this.x = Math.random() * canvas.width;
+          this.y = Math.random() * canvas.height;
+          this.size = Math.random() * 3 + 1;
+          this.color = evilMode ? '#ff3333' : colors[Math.floor(Math.random() * colors.length)];
+          this.speedX = (Math.random() - 0.5) * 1.2;
+          this.speedY = (Math.random() - 0.5) * 1.2;
+        }
+        update() {
+          this.x += this.speedX;
+          this.y += this.speedY;
+          if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+          if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+        }
+        draw() {
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+          ctx.fillStyle = this.color;
+          ctx.fill();
+        }
+      }
+
+      function init() {
+        particles = [];
+        for (let i = 0; i < particleCount; i++) {
+          particles.push(new Particle());
+        }
+      }
+
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach(p => {
+          p.update();
+          p.draw();
+        });
+        requestAnimationFrame(animate);
+      }
+
+      init();
+      animate();
+    }
+
+    // PAUSAR / REANUDAR voz
+    pauseVoiceBtn.addEventListener('click', () => {
+      try {
+        if (!voiceMuted) {
+          window.speechSynthesis.cancel();
+          voiceMuted = true;
+          pauseVoiceBtn.textContent = '▶';
+          pauseVoiceBtn.title = 'Reanudar voz';
+        } else {
+          voiceMuted = false;
+          pauseVoiceBtn.textContent = '⏸';
+          pauseVoiceBtn.title = 'Pausar voz';
+        }
+      } catch (e) {
+        console.error('Voice control error:', e);
+      }
+    });
+
+    // --- Web Serial (Arduino) ---
+    let port = null;
+    let writer = null;
+    const serialConnectBtn = document.getElementById('serialConnectBtn');
+    const sendSerialBtn = document.getElementById('sendSerialBtn');
+    const saveToArduinoBtn = document.getElementById('saveToArduinoBtn');
+    const readFromArduinoBtn = document.getElementById('readFromArduinoBtn');
+    const serialPanel = document.getElementById('serialPanel');
+    const serialLog = document.getElementById('serialLog');
+    const clearSerialLogBtn = document.getElementById('clearSerialLogBtn');
+    const closeSerialLogBtn = document.getElementById('closeSerialLogBtn');
+
+    function showSerialPanel() {
+      if (serialPanel) {
+        serialPanel.style.display = 'block';
+        serialPanel.setAttribute('aria-hidden','false');
+        setTimeout(()=> { if (serialLog) serialLog.scrollTop = serialLog.scrollHeight; }, 50);
+      }
+    }
+    function hideSerialPanel() {
+      if (serialPanel) {
+        serialPanel.style.display = 'none';
+        serialPanel.setAttribute('aria-hidden','true');
+        if (serialLog) serialLog.value = '';
+      }
+    }
+    function appendToSerialLog(line) {
+      if (!serialLog) return;
+      const now = new Date().toLocaleTimeString();
+      serialLog.value += `[${now}] ${line}\n`;
+      serialLog.scrollTop = serialLog.scrollHeight;
+    }
+    if (clearSerialLogBtn) clearSerialLogBtn.addEventListener('click', () => { if (serialLog) serialLog.value = ''; });
+    if (closeSerialLogBtn) closeSerialLogBtn.addEventListener('click', () => hideSerialPanel());
+
+    async function connectSerial() {
+      if (!('serial' in navigator)) {
+        alert('La API Web Serial no está disponible en este navegador. Usa Chrome/Edge en HTTPS o localhost.');
+        return;
+      }
+      try {
+        if (!port) {
+          port = await navigator.serial.requestPort();
+          await port.open({ baudRate: 9600 });
+          if (port.writable) writer = port.writable.getWriter();
+          serialConnectBtn.textContent = '🔌 (ON)';
+          appendMessage('Arduino conectado ✅', 'bot', false);
+          showSerialPanel();
+          appendToSerialLog('Conexión establecida (baudRate: 9600)');
+          readLoop().catch(e => console.error(e));
+        } else {
+          await disconnectSerial();
+        }
+      } catch (e) {
+        console.error('Serial connect error:', e);
+        alert('Error al conectar con Arduino: ' + (e.message || e));
+        port = null; writer = null;
+        serialConnectBtn.textContent = '🔌';
+      }
+    }
+
+    async function disconnectSerial() {
+      try {
+        if (writer) { try { await writer.close(); } catch(_){} writer.releaseLock(); writer = null; }
+        if (port) { try { await port.close(); } catch(_){} port = null; }
+        serialConnectBtn.textContent = '🔌';
+        appendMessage('Arduino desconectado ✖', 'bot', false);
+        hideSerialPanel();
+      } catch (e) { console.error('Serial disconnect error:', e); }
+    }
+
+    async function sendToArduino(text) {
+      if (!port || !writer) { alert('Arduino no conectado'); return; }
+      try {
+        const data = new TextEncoder().encode(String(text) + '\n');
+        await writer.write(data);
+        appendMessage('Enviado a Arduino: ' + text, 'bot', false);
+        appendToSerialLog('TX → ' + text);
+      } catch (e) {
+        console.error('Send to Arduino error:', e);
+        alert('Error al enviar al Arduino');
+      }
+    }
+
+    async function readLoop() {
+      try {
+        while (port && port.readable) {
+          const reader = port.readable.getReader();
+          try {
+            while (true) {
+              const { value, done } = await reader.read();
+              if (done) break;
+              if (value) {
+                const text = new TextDecoder().decode(value);
+                appendMessage('Arduino: ' + text.trim(), 'bot', false);
+                appendToSerialLog('RX ← ' + text.trim());
+              }
+            }
+          } finally {
+            reader.releaseLock();
+          }
+          await new Promise(r => setTimeout(r, 100));
+        }
+      } catch (e) { console.error('Read loop error:', e); }
+    }
+
+    if (serialConnectBtn) serialConnectBtn.addEventListener('click', connectSerial);
+    if (sendSerialBtn) sendSerialBtn.addEventListener('click', () => {
+      const t = userInput.value.trim();
+      if (!t) return;
+      sendToArduino(t);
+      userInput.value = '';
+    });
+    if (saveToArduinoBtn) saveToArduinoBtn.addEventListener('click', () => {
+      const t = userInput.value.trim();
+      if (!t) return;
+      sendToArduino('SAVE:' + t);
+      userInput.value = '';
+    });
+    if (readFromArduinoBtn) readFromArduinoBtn.addEventListener('click', () => {
+      sendToArduino('READ');
+    });
+    // --- fin Web Serial ---
+
+    // Inicialización
+    window.addEventListener('load', () => {
+      loadHistory();
+      initParticles();
+      loadVoicesAsync().catch(()=>{});
+      // diagnóstico si TTS no está disponible
+      if (!('speechSynthesis' in window)) {
+        appendMessage('Texto a voz no disponible en este navegador.', 'bot', false);
+      }
+    });
+  </script>
+</body>
+</html>
